@@ -1,0 +1,21 @@
+kind = "web"
+previewPath = "/"
+title = "Todo App"
+version = "1.0.0"
+id = "artifacts/todo-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25230
+
+[services.development]
+run = "npm install && npm run dev"
+
+[services.env]
+PORT = "25230"
