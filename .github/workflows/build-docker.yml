@@ -2,7 +2,7 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -10,13 +10,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.0
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
         run: docker build -t todo-app:latest -t todo-app:${{ github.sha }} .
 
-      - name: Verify image exists
-        run: docker images | grep todo-app
+      - name: Run container and check for 'Vite + React'
+        run: |
+          docker run -d --name todo-app-test todo-app:latest
+          # Give the server a moment to start
+          sleep 5
+          # Check the logs for the expected output
+          docker logs todo-app-test | grep "Vite + React"
