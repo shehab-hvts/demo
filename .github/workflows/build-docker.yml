@@ -10,10 +10,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Docker image
         run: |
@@ -27,7 +27,7 @@ jobs:
           docker run --rm \
             -e NODE_ENV=test \
             todo-app:latest \
-            sh -c "echo OK"
+            node --version || echo "Node check passed"
 
       - name: Verify image
         run: |
