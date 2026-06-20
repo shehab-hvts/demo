@@ -1,8 +1,13 @@
+import dotenv from 'dotenv'
 import express from 'express'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { eq } from 'drizzle-orm'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { tasks } from './schema.js'
+
+dotenv.config()
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const db = drizzle(pool)
@@ -30,7 +35,7 @@ app.post('/api/tasks', async (req, res) => {
   }
 })
 
-app.patch('/api/tasks/:id', async (req, res) => {
+async function updateTask(req: express.Request, res: express.Response) {
   try {
     const id = parseInt(req.params.id)
     const { done, title } = req.body as { done?: boolean; title?: string }
@@ -43,7 +48,10 @@ app.patch('/api/tasks/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) })
   }
-})
+}
+
+app.put('/api/tasks/:id', updateTask)
+app.patch('/api/tasks/:id', updateTask)
 
 app.delete('/api/tasks/:id', async (req, res) => {
   try {
@@ -55,6 +63,16 @@ app.delete('/api/tasks/:id', async (req, res) => {
     res.status(500).json({ error: String(err) })
   }
 })
+
+if (process.env.NODE_ENV === 'production') {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url))
+  const publicDir = path.resolve(currentDir, '../public')
+
+  app.use(express.static(publicDir))
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'))
+  })
+}
 
 const PORT = parseInt(process.env.API_PORT || '3001')
 app.listen(PORT, () => console.log(`API on :${PORT}`))

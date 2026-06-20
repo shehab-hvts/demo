@@ -1,0 +1,41 @@
+{
+  "family": "todo-app-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["EC2"],
+  "cpu": "512",
+  "memory": "1024",
+  "taskRoleArn": "arn:aws:iam::340010512290:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::340010512290:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "todo-app",
+      "image": "{{IMAGE_URI}}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3001,
+          "hostPort": 3001,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql://postgres:TodoApp2024Secure!@REPLACE_WITH_RDS_ENDPOINT:5432/todo_db"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/todo-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

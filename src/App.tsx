@@ -82,22 +82,37 @@ function Checkbox({
   )
 }
 
+async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init)
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!response.ok) {
+    const message = typeof data?.error === 'string'
+      ? data.error
+      : `Request failed with status ${response.status}`
+    throw new Error(message)
+  }
+
+  return data as T
+}
+
 const api = {
-  list: (): Promise<Task[]> => fetch('/api/tasks').then(r => r.json()),
+  list: (): Promise<Task[]> => requestJson('/api/tasks'),
   create: (title: string): Promise<Task> =>
-    fetch('/api/tasks', {
+    requestJson('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title }),
-    }).then(r => r.json()),
+    }),
   toggle: (id: number, done: boolean): Promise<Task> =>
-    fetch(`/api/tasks/${id}`, {
+    requestJson(`/api/tasks/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done }),
-    }).then(r => r.json()),
+    }),
   remove: (id: number): Promise<void> =>
-    fetch(`/api/tasks/${id}`, { method: 'DELETE' }).then(() => undefined),
+    requestJson(`/api/tasks/${id}`, { method: 'DELETE' }).then(() => undefined),
 }
 
 function TaskRow({
@@ -132,9 +147,10 @@ export default function App() {
   const qc = useQueryClient()
   const invalidate = () => qc.invalidateQueries({ queryKey: ['tasks'] })
 
-  const { data: taskList = [], isLoading } = useQuery({
+  const { data: taskList = [], isLoading, isFetching, isError, error } = useQuery({
     queryKey: ['tasks'],
     queryFn: api.list,
+    retry: false,
   })
 
   const create = useMutation({ mutationFn: api.create, onSuccess: invalidate })
@@ -186,13 +202,19 @@ export default function App() {
           </div>
         )}
 
-        {!isLoading && taskList.length === 0 && (
+        {isError && (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error instanceof Error ? error.message : 'Unable to load tasks.'}
+          </p>
+        )}
+
+        {!isLoading && !isFetching && !isError && taskList.length === 0 && (
           <p className="text-sm text-zinc-400 text-center py-12">
             No tasks yet. Add one above.
           </p>
         )}
 
-        {pending.length > 0 && (
+        {!isError && pending.length > 0 && (
           <div className="space-y-2 mb-6">
             {pending.map(task => (
               <TaskRow
@@ -205,7 +227,7 @@ export default function App() {
           </div>
         )}
 
-        {done.length > 0 && (
+        {!isError && done.length > 0 && (
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400 mb-2">
               Completed

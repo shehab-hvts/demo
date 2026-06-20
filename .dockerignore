@@ -1,0 +1,14 @@
+node_modules/
+dist/
+drizzle/
+.git/
+.env
+.env.local
+.DS_Store
+.turbo/
+.vscode/
+.idea/
+.gitignore
+.replit
+.replit-artifact/
+scripts/
