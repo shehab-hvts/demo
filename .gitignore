@@ -1,3 +1,47 @@
+# Dependencies
 node_modules/
-.env
+
+# Build outputs
 dist/
+build/
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary
+area51/*
+!area51/.gitkeep
+*.tmp
+.turbo/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache

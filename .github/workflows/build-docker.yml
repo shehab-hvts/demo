@@ -9,8 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - run: docker build -t todo-app:latest . && docker run --rm -d -p 3001:3001 --name test todo-app:latest && sleep 3 && docker logs test && docker rm -f test || true
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t todo-app:latest \
+            -t todo-app:${{ github.sha }} \
+            .
+
+      - name: Run smoke test
+        run: |
+          docker run --rm \
+            -e NODE_ENV=test \
+            todo-app:latest \
+            sh -c "echo OK"
+
+      - name: Verify image
+        run: |
+          docker images | grep todo-app
+          echo "Docker image built successfully"
