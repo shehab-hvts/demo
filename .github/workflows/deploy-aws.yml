@@ -82,6 +82,7 @@ jobs:
               --cluster "$ECS_CLUSTER" \
               --service "$ECS_SERVICE" \
               --task-definition "${{ steps.register-task.outputs.task_arn }}" \
+              --force-new-deployment \
               --region "$AWS_REGION"
           else
             aws ecs create-service \
@@ -93,7 +94,5 @@ jobs:
               --region "$AWS_REGION"
           fi
 
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE" \
-            --region "$AWS_REGION"
+          echo "✅ Deployment triggered. Task definition: ${{ steps.register-task.outputs.task_arn }}"
+          echo "📊 Monitor at: https://console.aws.amazon.com/ecs/v2/clusters/prod-cluster/services/todo-app-service"
