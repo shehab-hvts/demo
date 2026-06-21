@@ -1,7 +1,7 @@
 FROM node:25-alpine AS base
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 FROM base AS dev
 COPY . .
@@ -16,7 +16,7 @@ FROM node:25-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 EXPOSE 3001
 CMD ["npm", "run", "start"]
