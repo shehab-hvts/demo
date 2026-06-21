@@ -9,21 +9,43 @@ import { tasks } from './schema.js'
 
 dotenv.config()
 
+console.log('[Server Init] Environment:', {
+  NODE_ENV: process.env.NODE_ENV,
+  DATABASE_URL: process.env.DATABASE_URL ? '***' : 'NOT_SET',
+  AWS_REGION: process.env.AWS_REGION
+})
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+
+pool.on('error', (err) => {
+  console.error('[Pool Error]', err instanceof Error ? err.message : String(err))
+})
+
+pool.on('connect', () => {
+  console.log('[Pool] Connected to database')
+})
+
 const db = drizzle(pool)
 
 const app = express()
 app.use(express.json())
 
 async function ensureSchema() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS tasks (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      done BOOLEAN NOT NULL DEFAULT FALSE,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    )
-  `)
+  try {
+    console.log('[Schema] Initializing schema...')
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        done BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+    console.log('[Schema] Table created/verified')
+  } catch (err) {
+    console.error('[Schema] Error:', err instanceof Error ? err.message : String(err))
+    throw err
+  }
 }
 
 app.get('/api/tasks', async (_req, res) => {
@@ -87,11 +109,21 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = parseInt(process.env.API_PORT || '3001')
 
+console.log('[Startup] Starting server initialization...')
 ensureSchema()
   .then(() => {
-    app.listen(PORT, () => console.log(`API on :${PORT}`))
+    const server = app.listen(PORT, () => {
+      console.log(`[Server] API running on http://0.0.0.0:${PORT}`)
+      console.log('[Server] Ready to accept requests')
+    })
+    server.on('error', (err) => {
+      console.error('[Server] Error:', err instanceof Error ? err.message : String(err))
+      process.exit(1)
+    })
   })
   .catch((err) => {
-    console.error('Failed to initialize database schema', err)
+    console.error('[Startup] Failed to initialize database schema')
+    console.error('[Startup] Error details:', err instanceof Error ? err.message : String(err))
+    console.error('[Startup] Error stack:', err instanceof Error ? err.stack : '')
     process.exit(1)
   })
