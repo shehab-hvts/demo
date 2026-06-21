@@ -15,6 +15,17 @@ const db = drizzle(pool)
 const app = express()
 app.use(express.json())
 
+async function ensureSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      done BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `)
+}
+
 app.get('/api/tasks', async (_req, res) => {
   try {
     const result = await db.select().from(tasks).orderBy(tasks.createdAt)
@@ -75,4 +86,12 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = parseInt(process.env.API_PORT || '3001')
-app.listen(PORT, () => console.log(`API on :${PORT}`))
+
+ensureSchema()
+  .then(() => {
+    app.listen(PORT, () => console.log(`API on :${PORT}`))
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database schema', err)
+    process.exit(1)
+  })

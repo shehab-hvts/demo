@@ -11,6 +11,13 @@ out/
 .env
 .env.local
 .env.*.local
+.aws/
+*.pem
+*.key
+*credentials*.csv
+*accessKeys*.csv
+*.tfstate
+*.tfstate.*
 
 # Logs
 *.log
