@@ -45,19 +45,16 @@ jobs:
           docker push "$REGISTRY/$ECR_REPOSITORY:latest"
           echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Render task definition
-        env:
-          DATABASE_URL_PARAMETER_ARN: ${{ secrets.AWS_DATABASE_URL_PARAMETER_ARN }}
-        run: |
-          sed "s|{{DATABASE_URL_PARAMETER_ARN}}|$DATABASE_URL_PARAMETER_ARN|g" "$TASK_DEFINITION_TEMPLATE" > task-definition.rendered.json
-
       - name: Fill image in task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: task-definition.rendered.json
+          task-definition: ${{ env.TASK_DEFINITION_TEMPLATE }}
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            AWS_REGION=${{ env.AWS_REGION }}
 
       - name: Register task definition
         id: register-task

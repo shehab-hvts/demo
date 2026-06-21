@@ -22,12 +22,14 @@
         {
           "name": "NODE_ENV",
           "value": "production"
-        }
-      ],
-      "secrets": [
+        },
         {
           "name": "DATABASE_URL",
-          "valueFrom": "{{DATABASE_URL_PARAMETER_ARN}}"
+          "value": ""
+        },
+        {
+          "name": "AWS_REGION",
+          "value": ""
         }
       ],
       "logConfiguration": {
