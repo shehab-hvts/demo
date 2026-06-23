@@ -30,6 +30,11 @@ const db = drizzle(pool)
 const app = express()
 app.use(express.json())
 
+// Health check endpoint (doesn't require database)
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
 async function ensureSchema() {
   try {
     console.log('[Schema] Initializing schema...')
