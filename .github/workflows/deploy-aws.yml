@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: eu-north-1
+  AWS_REGION: us-east-1
   ECR_REPOSITORY: todo-app
   ECS_CLUSTER: prod-cluster
   ECS_SERVICE: todo-app-service
