@@ -26,6 +26,10 @@
         {
           "name": "AWS_REGION",
           "value": "us-east-1"
+        },
+        {
+          "name": "DATABASE_TYPE",
+          "value": "supabase-cloud"
         }
       ],
       "secrets": [
