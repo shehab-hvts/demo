@@ -34,6 +34,7 @@
           "valueFrom": "arn:aws:ssm:us-east-1:340010512290:parameter/todo-app-database-url"
         }
       ],
+      "dnsServers": ["8.8.8.8", "8.8.4.4"],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
