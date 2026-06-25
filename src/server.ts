@@ -9,14 +9,18 @@ import { tasks } from './schema.js'
 
 dotenv.config()
 
-console.log('[Server Init] Environment:', {
+console.log('[===== SERVER INIT =====]')
+console.log('[Server] NodeJS PID:', process.pid)
+console.log('[Server] Environment:', {
   NODE_ENV: process.env.NODE_ENV,
-  DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT_SET',
-  AWS_REGION: process.env.AWS_REGION
+  DATABASE_URL: process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 50)}...` : 'NOT_SET',
+  AWS_REGION: process.env.AWS_REGION,
+  API_PORT: process.env.API_PORT || '3001'
 })
 
 if (!process.env.DATABASE_URL) {
   console.error('[CRITICAL] DATABASE_URL not set!')
+  console.error('[CRITICAL] Available env vars:', Object.keys(process.env).join(', '))
   process.exit(1)
 }
 
@@ -126,25 +130,33 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = parseInt(process.env.API_PORT || '3001')
 
-console.log('[Startup] Starting server...')
+console.log('[Startup] Preparing to start server...')
+console.log('[Startup] Listening on port:', PORT)
 
 // Try to ensure schema, but don't fail if it errors
+console.log('[Startup] Initializing database schema...')
 ensureSchema()
   .then(() => {
-    console.log('[Startup] Database schema ready')
+    console.log('[Startup] ✅ Database schema initialization complete')
   })
   .catch((err) => {
-    console.warn('[Startup] Database not ready yet - will retry on first request')
+    console.warn('[Startup] ⚠️  Database not ready yet - will retry on first request')
     console.warn('[Startup] Error:', err instanceof Error ? err.message : String(err))
   })
   .finally(() => {
+    console.log('[Startup] Starting Express server...')
     // Start server regardless of database status
-    const server = app.listen(PORT, () => {
-      console.log(`[Server] API running on http://0.0.0.0:${PORT}`)
-      console.log('[Server] Ready to accept requests')
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[====== SERVER READY ======]`)
+      console.log(`[Server] ✅ API is LISTENING on 0.0.0.0:${PORT}`)
+      console.log(`[Server] ✅ Ready to accept HTTP requests`)
+      console.log(`[Server] Health endpoint: http://0.0.0.0:${PORT}/health`)
+      console.log(`[Server] Tasks endpoint: http://0.0.0.0:${PORT}/api/tasks`)
+      console.log(`[===== SERVER STARTED =====]`)
     })
     server.on('error', (err) => {
-      console.error('[Server] Error:', err instanceof Error ? err.message : String(err))
+      console.error('[Server] ❌ ERROR:', err instanceof Error ? err.message : String(err))
+      console.error('[Server] Stack:', err instanceof Error ? err.stack : '')
       process.exit(1)
     })
   })
