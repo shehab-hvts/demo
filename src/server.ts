@@ -126,9 +126,19 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = parseInt(process.env.API_PORT || '3001')
 
-console.log('[Startup] Starting server initialization...')
+console.log('[Startup] Starting server...')
+
+// Try to ensure schema, but don't fail if it errors
 ensureSchema()
   .then(() => {
+    console.log('[Startup] Database schema ready')
+  })
+  .catch((err) => {
+    console.warn('[Startup] Database not ready yet - will retry on first request')
+    console.warn('[Startup] Error:', err instanceof Error ? err.message : String(err))
+  })
+  .finally(() => {
+    // Start server regardless of database status
     const server = app.listen(PORT, () => {
       console.log(`[Server] API running on http://0.0.0.0:${PORT}`)
       console.log('[Server] Ready to accept requests')
@@ -137,10 +147,4 @@ ensureSchema()
       console.error('[Server] Error:', err instanceof Error ? err.message : String(err))
       process.exit(1)
     })
-  })
-  .catch((err) => {
-    console.error('[Startup] Failed to initialize database schema')
-    console.error('[Startup] Error details:', err instanceof Error ? err.message : String(err))
-    console.error('[Startup] Error stack:', err instanceof Error ? err.stack : '')
-    process.exit(1)
   })
