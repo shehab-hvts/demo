@@ -1,6 +1,6 @@
 {
   "family": "todo-app-task",
-  "networkMode": "bridge",
+  "networkMode": "host",
   "requiresCompatibilities": ["EC2"],
   "cpu": "128",
   "memory": "256",
@@ -11,13 +11,6 @@
       "name": "todo-app",
       "image": "{{IMAGE_URI}}",
       "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 3001,
-          "hostPort": 3001,
-          "protocol": "tcp"
-        }
-      ],
       "environment": [
         {
           "name": "NODE_ENV",
