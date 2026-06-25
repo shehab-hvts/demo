@@ -11,14 +11,20 @@ dotenv.config()
 
 console.log('[Server Init] Environment:', {
   NODE_ENV: process.env.NODE_ENV,
-  DATABASE_URL: process.env.DATABASE_URL ? '***' : 'NOT_SET',
+  DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT_SET',
   AWS_REGION: process.env.AWS_REGION
 })
+
+if (!process.env.DATABASE_URL) {
+  console.error('[CRITICAL] DATABASE_URL not set!')
+  process.exit(1)
+}
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
 
 pool.on('error', (err) => {
   console.error('[Pool Error]', err instanceof Error ? err.message : String(err))
+  console.error('[Pool Error Stack]', err instanceof Error ? err.stack : '')
 })
 
 pool.on('connect', () => {
@@ -38,7 +44,8 @@ app.get('/health', (_req, res) => {
 async function ensureSchema() {
   try {
     console.log('[Schema] Initializing schema...')
-    await pool.query(`
+    console.log('[Schema] Attempting to create table...')
+    const result = await pool.query(`
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
@@ -46,9 +53,14 @@ async function ensureSchema() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `)
-    console.log('[Schema] Table created/verified')
+    console.log('[Schema] Table created/verified successfully')
+    console.log('[Schema] Query result:', result?.command)
   } catch (err) {
-    console.error('[Schema] Error:', err instanceof Error ? err.message : String(err))
+    console.error('[Schema] ERROR - Failed to create table')
+    console.error('[Schema] Error Type:', err?.constructor?.name)
+    console.error('[Schema] Error Message:', err instanceof Error ? err.message : String(err))
+    console.error('[Schema] Error Code:', (err as any)?.code)
+    console.error('[Schema] Full Error:', err)
     throw err
   }
 }
