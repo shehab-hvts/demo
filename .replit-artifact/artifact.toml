@@ -15,7 +15,7 @@ paths = [ "/" ]
 localPort = 25230
 
 [services.development]
-run = "npm install && npm run dev"
+run = "/nix/store/51gywl5jn4nna7al9waj142pw4vfhy0k-nodejs-22.19.0/bin/npm install && /nix/store/51gywl5jn4nna7al9waj142pw4vfhy0k-nodejs-22.19.0/bin/npm run dev"
 
 [services.env]
 PORT = "25230"
