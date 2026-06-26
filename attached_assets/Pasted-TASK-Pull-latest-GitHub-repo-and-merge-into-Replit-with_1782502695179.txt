@@ -1,0 +1,103 @@
+TASK: Pull latest GitHub repo and merge into Replit without breaking 
+Replit-specific config.
+
+GITHUB REPO: https://github.com/shehab-hvts/demo
+BRANCH: main
+
+BACKGROUND:
+- App was originally built in Replit
+- Pushed to GitHub
+- Pulled to local PC → edits made → pushed back to GitHub
+- GitHub version is LATEST (has Drizzle fix, Supabase config, AWS files)
+- Replit is running OLD version with Helium DB
+- Goal: Replit runs GitHub code but keeps Replit-specific config
+
+STEP 1: DOWNLOAD GITHUB REPO
+curl -L https://github.com/shehab-hvts/demo/archive/refs/heads/main.zip \
+  -o /tmp/demo.zip
+unzip -q /tmp/demo.zip -d /tmp
+ls /tmp/demo-main/src/
+
+STEP 2: OVERWRITE REPLIT SOURCE FILES WITH GITHUB VERSION
+cp /tmp/demo-main/src/server.ts /home/runner/workspace/src/server.ts
+cp /tmp/demo-main/src/schema.ts /home/runner/workspace/src/schema.ts
+cp /tmp/demo-main/src/App.tsx /home/runner/workspace/src/App.tsx
+cp /tmp/demo-main/src/main.tsx /home/runner/workspace/src/main.tsx
+cp /tmp/demo-main/drizzle.config.ts /home/runner/workspace/drizzle.config.ts
+cp /tmp/demo-main/package.json /home/runner/workspace/package.json
+cp /tmp/demo-main/tsconfig.json /home/runner/workspace/tsconfig.json
+
+STEP 3: PRESERVE REPLIT-SPECIFIC CONFIG (DO NOT OVERWRITE THESE)
+- vite.config.ts → KEEP Replit version (needs allowedHosts: true)
+- artifact.toml → KEEP Replit version (needs localPort = 5173)
+- .replit → KEEP Replit version
+- .npmrc → KEEP Replit version
+
+STEP 4: SET UP DATABASE
+Replit cannot connect to Supabase (DNS blocked).
+Use Replit's built-in Helium PostgreSQL for local development.
+Keep Supabase credentials as reference only.
+
+DATABASE_URL for Replit = use existing Helium connection string
+DATABASE_URL for AWS = postgresql://postgres:hvts007!qed@db.wgbfmoancrtswyumpule.supabase.co:6543/postgres?sslmode=require
+
+Create .env file:
+DATABASE_URL="<existing helium connection string>"
+NODE_ENV="development"
+PORT="3001"
+
+STEP 5: VERIFY KEY FILE - src/server.ts
+After copying, check line 74 of server.ts:
+grep -n "orderBy" src/server.ts
+
+Expected output (GitHub version with fix):
+  orderBy((table) => table.createdAt)   ← CORRECT
+
+If it shows:
+  orderBy(tasks.createdAt)              ← OLD VERSION, copy failed
+
+STEP 6: CREATE TASKS TABLE IN HELIUM DB
+Run this SQL against Helium (local) database:
+CREATE TABLE IF NOT EXISTS tasks (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  done BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+STEP 7: REINSTALL DEPENDENCIES
+cd /home/runner/workspace
+rm -rf node_modules
+npm install
+
+STEP 8: RESTART WORKFLOW
+Kill existing processes and restart:
+pkill -f "node" || true
+pkill -f "vite" || true
+npm run dev
+
+STEP 9: VERIFY
+- Frontend loads at Replit preview URL
+- GET /api/tasks returns [] or task list (NOT error)
+- No "tasks"."created_at" error in response
+
+CONFLICT RESOLUTION TABLE:
+File              | Keep Which?  | Reason
+server.ts         | GITHUB       | Has Drizzle fix
+schema.ts         | GITHUB       | Latest schema
+App.tsx           | GITHUB       | Latest UI
+main.tsx          | GITHUB       | Latest entry
+package.json      | GITHUB       | Latest deps
+drizzle.config.ts | GITHUB       | Latest config
+vite.config.ts    | REPLIT       | Needs allowedHosts: true
+artifact.toml     | REPLIT       | Needs port 5173
+.replit           | REPLIT       | Replit specific
+.npmrc            | REPLIT       | Replit specific
+.env              | CREATE NEW   | Use Helium URL
+
+SUCCESS CRITERIA:
+✅ grep "orderBy" src/server.ts shows callback syntax
+✅ npm run dev starts without errors
+✅ Replit preview loads Tasks UI
+✅ GET /api/tasks returns JSON (no error)
+✅ Can add/delete tasks in Replit preview

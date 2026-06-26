@@ -1,0 +1,106 @@
+TASK: Pull latest GitHub repo and merge into Replit development environment
+without breaking Replit-specific configuration.
+
+PROJECT SETUP:
+- Repository: <GITHUB_REPO_URL>
+- Branch: <BRANCH_NAME>
+- Current environment: Replit with local database
+- Target: Sync with GitHub latest code + preserve Replit config
+
+WORKFLOW HISTORY:
+- Code initially built in Replit
+- Pushed to GitHub
+- Pulled to local machine
+- Local edits made and pushed back to GitHub
+- GitHub version is now LATEST
+- Replit version is OUTDATED
+- Goal: Update Replit with GitHub code, keep local DB config
+
+STEP 1: DOWNLOAD LATEST GITHUB REPO
+curl -L <GITHUB_REPO_URL>/archive/refs/heads/<BRANCH_NAME>.zip \
+  -o /tmp/repo.zip
+unzip -q /tmp/repo.zip -d /tmp
+ls /tmp/repo-<BRANCH_NAME>/src/
+
+STEP 2: OVERWRITE SOURCE FILES WITH GITHUB VERSION
+cp /tmp/repo-<BRANCH_NAME>/src/* /home/runner/workspace/src/
+cp /tmp/repo-<BRANCH_NAME>/package.json /home/runner/workspace/
+cp /tmp/repo-<BRANCH_NAME>/tsconfig.json /home/runner/workspace/
+cp /tmp/repo-<BRANCH_NAME>/<CONFIG_FILE> /home/runner/workspace/
+
+STEP 3: PRESERVE REPLIT-SPECIFIC CONFIG (DO NOT OVERWRITE)
+- vite.config.ts → KEEP (has allowedHosts: true for Replit preview)
+- artifact.toml → KEEP (port configuration for Replit)
+- .replit → KEEP
+- .npmrc → KEEP
+
+STEP 4: DATABASE CONFIGURATION
+Replit uses local/embedded database for development
+Production uses external database (AWS/Cloud provider)
+
+For Replit .env:
+DATABASE_URL="<LOCAL_DEV_CONNECTION_STRING>"
+NODE_ENV="development"
+PORT="<LOCAL_PORT>"
+
+For Production (separate config):
+DATABASE_URL="<PRODUCTION_CONNECTION_STRING>"
+NODE_ENV="production"
+
+STEP 5: VERIFY CRITICAL FILES
+After copying, check key source files:
+ls -la src/
+grep -n "<KEY_FUNCTION>" src/main-file.ts
+
+Expected: Latest version from GitHub
+If outdated: Replication failed, retry step 2
+
+STEP 6: CREATE DATABASE SCHEMA (LOCAL DEV)
+Use Replit's embedded database to create required tables:
+CREATE TABLE IF NOT EXISTS <TABLE_NAME> (
+  id SERIAL PRIMARY KEY,
+  <FIELD_1> <TYPE> <CONSTRAINTS>,
+  <FIELD_2> <TYPE> <CONSTRAINTS>,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+STEP 7: REINSTALL DEPENDENCIES
+cd /home/runner/workspace
+rm -rf node_modules
+npm install
+
+STEP 8: RESTART DEVELOPMENT SERVER
+pkill -f "node" || true
+pkill -f "vite" || true
+npm run dev
+
+STEP 9: VERIFY DEPLOYMENT
+- Frontend loads at Replit preview URL
+- API endpoints respond correctly
+- Database queries work (no connection errors)
+- No deprecated code in responses
+
+CONFLICT RESOLUTION MATRIX:
+File Type           | Source   | Reason
+─────────────────────────────────────────────
+Source code (src/)  | GITHUB   | Latest logic
+Config files        | GITHUB   | Latest dependencies
+Dev server config   | REPLIT   | Environment-specific
+Build config        | REPLIT   | Platform-specific
+Environment vars    | CREATE   | Use appropriate values
+Database schema     | CREATE   | Initialize local DB
+
+SUCCESS CHECKLIST:
+✅ All source files copied from GitHub
+✅ npm run dev starts without errors
+✅ Preview loads UI correctly
+✅ API endpoints respond with data
+✅ No connection errors in logs
+✅ Can perform basic operations (CRUD)
+
+NOTES:
+- Replit dev database is LOCAL ONLY
+- Production database is SEPARATE (configured differently)
+- Keep environment configs isolated
+- Document connection strings separately for security
+- Test all endpoints after merge
