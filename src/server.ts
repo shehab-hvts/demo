@@ -1,3 +1,6 @@
+import dns from 'node:dns'
+dns.setDefaultResultOrder('ipv4first')
+
 import dotenv from 'dotenv'
 import express from 'express'
 import { drizzle } from 'drizzle-orm/node-postgres'
