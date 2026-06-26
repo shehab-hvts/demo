@@ -1,0 +1,207 @@
+# 📋 GITHUB→REPLIT MERGE & SYNC GUIDE
+
+## SITUATION ANALYSIS
+
+```
+Replit Version:  OLD (running basic app without Drizzle fix)
+GitHub Version:  LATEST (has Drizzle fix + AWS config + Supabase integration)
+Local PC:        Same as GitHub (where edits were made)
+
+Goal: Pull GitHub → Replit, merge workflows, keep Replit-specific config
+```
+
+---
+
+## FILE SYNC STATUS
+
+| File | Status | Action |
+|------|--------|--------|
+| `src/server.ts` | DIFFERENT | Pull from GitHub (has Drizzle fix) |
+| `src/schema.ts` | DIFFERENT | Pull from GitHub (Supabase config) |
+| `src/App.tsx` | DIFFERENT | Pull from GitHub (updated UI) |
+| `package.json` | SAME | Keep Replit version |
+| `vite.config.ts` | CONFLICT | Keep Replit (allowedHosts: true) |
+| `artifact.toml` | CONFLICT | Keep Replit (port 5173) |
+| `.env` | MISSING | **Add Supabase credentials** |
+| `drizzle.config.ts` | DIFFERENT | Pull from GitHub (Supabase config) |
+
+---
+
+## STEP 1: PULL GITHUB REPO INTO REPLIT
+
+```bash
+# 1. Backup current Replit version
+cp -r /home/runner/workspace /home/runner/workspace-backup-$(date +%s)
+
+# 2. Download GitHub repo
+cd /tmp
+curl -L https://github.com/shehab-hvts/demo/archive/refs/heads/main.zip -o demo.zip
+unzip -q demo.zip
+cd demo-main
+
+# 3. Copy GitHub source files to Replit (OVERWRITE)
+cp src/server.ts /home/runner/workspace/src/
+cp src/schema.ts /home/runner/workspace/src/
+cp src/App.tsx /home/runner/workspace/src/
+cp src/main.tsx /home/runner/workspace/src/
+cp drizzle.config.ts /home/runner/workspace/
+cp .env.example /home/runner/workspace/.env (if exists)
+cp .gitignore /home/runner/workspace/
+
+# 4. Verify Replit-specific config is intact
+cat /home/runner/workspace/vite.config.ts | grep allowedHosts
+cat /home/runner/workspace/artifact.toml | grep "^localPort"
+
+# Expected output:
+# allowedHosts: true ✅
+# localPort = 5173 ✅
+```
+
+---
+
+## STEP 2: ADD SUPABASE CREDENTIALS TO REPLIT
+
+**Create `.env` file in Replit root with:**
+
+```env
+# Database (Supabase)
+DATABASE_URL="postgresql://postgres:hvts007!qed@db.wgbfmoancrtswyumpule.supabase.co:6543/postgres?sslmode=require"
+
+# Node environment
+NODE_ENV=development
+
+# Server port
+PORT=3001
+
+# Supabase specific (if needed by app)
+VITE_SUPABASE_HOST=db.wgbfmoancrtswyumpule.supabase.co
+VITE_SUPABASE_PORT=6543
+VITE_SUPABASE_USER=postgres
+VITE_SUPABASE_PASSWORD=hvts007!qed
+VITE_SUPABASE_DB=postgres
+```
+
+---
+
+## STEP 3: KEEP REPLIT-SPECIFIC CONFIG
+
+**vite.config.ts should have:**
+```typescript
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    allowedHosts: true,  // ← KEEP THIS for Replit
+    middlewareMode: true
+  },
+  build: {
+    outDir: 'dist'
+  }
+});
+```
+
+**artifact.toml should have:**
+```toml
+[env]
+PORT = "3001"
+
+[nix]
+channel = "stable-23_11"
+packages = ["nodejs_22"]
+
+[workflows]
+runButton = "npm run dev"
+
+[[ports]]
+localPort = 5173     # ← KEEP THIS for Replit
+exposeLocalhost = true
+```
+
+---
+
+## STEP 4: REINSTALL DEPENDENCIES
+
+```bash
+cd /home/runner/workspace
+
+# Clear old cache
+rm -rf node_modules package-lock.json
+npm cache clean --force
+
+# Reinstall with GitHub versions
+npm install
+```
+
+---
+
+## STEP 5: RESTART AND VERIFY
+
+```bash
+# Kill old processes
+pkill -f "npm run dev"
+pkill -f "node"
+
+# Run both servers
+npm run dev
+
+# Wait 30 seconds, then check:
+# Vite frontend: http://replit-url:5173
+# Express API: http://localhost:3001/health
+```
+
+---
+
+## CREDENTIALS SUMMARY FOR REPLIT
+
+| Resource | Credential | Value |
+|----------|------------|-------|
+| **Supabase Host** | Host | `db.wgbfmoancrtswyumpule.supabase.co` |
+| **Supabase Port** | Port | `6543` (Pooler, IPv4) |
+| **Supabase User** | Username | `postgres` |
+| **Supabase Password** | Password | `hvts007!qed` |
+| **Supabase Database** | Database | `postgres` |
+| **Connection String** | DATABASE_URL | `postgresql://postgres:hvts007!qed@db.wgbfmoancrtswyumpule.supabase.co:6543/postgres?sslmode=require` |
+| **Node Port** | PORT | `3001` |
+| **Vite Port** | localPort | `5173` |
+
+---
+
+## CONFLICT RESOLUTION SUMMARY
+
+| File | GitHub | Replit | Decision | Why |
+|------|--------|--------|----------|-----|
+| `src/` files | ✅ Latest | ❌ Old | **PULL GitHub** | Has all your local PC edits |
+| `vite.config.ts` | ❌ No allowedHosts | ✅ Has allowedHosts | **KEEP Replit** | Required for preview |
+| `artifact.toml` | Port 25230 | Port 5173 | **KEEP Replit** | 25230 not supported |
+| `.env` | ❌ Missing | ❌ Missing | **CREATE new** | Add Supabase creds |
+| `package.json` | ✅ Latest | ✅ Same | **Keep either** | Already in sync |
+
+---
+
+## ONE-LINER TO DO EVERYTHING
+
+```bash
+curl -L https://github.com/shehab-hvts/demo/archive/refs/heads/main.zip -o /tmp/demo.zip && \
+unzip -q /tmp/demo.zip -d /tmp && \
+cp /tmp/demo-main/src/* /home/runner/workspace/src/ && \
+cp /tmp/demo-main/drizzle.config.ts /home/runner/workspace/ && \
+echo 'DATABASE_URL="postgresql://postgres:hvts007!qed@db.wgbfmoancrtswyumpule.supabase.co:6543/postgres?sslmode=require"' >> /home/runner/workspace/.env && \
+cd /home/runner/workspace && \
+npm install && \
+npm run dev
+```
+
+---
+
+## RESULT AFTER MERGE
+
+```
+✅ Replit running latest GitHub code
+✅ Drizzle fix deployed
+✅ Supabase connected
+✅ Both workflows (Replit dev + AWS deployment) in sync
+✅ No conflicts
+```
+
+---
+
+**Execute this guide in Replit now. Reply once complete with app preview screenshot.**

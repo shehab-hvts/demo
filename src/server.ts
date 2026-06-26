@@ -27,6 +27,8 @@ if (!process.env.DATABASE_URL) {
   process.exit(1)
 }
 
+console.log('[DB] Using DATABASE_URL:', process.env.DATABASE_URL.substring(0, 50) + '...')
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
 
 pool.on('error', (err) => {
