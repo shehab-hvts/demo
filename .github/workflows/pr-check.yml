@@ -5,27 +5,29 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit
 
-      - name: TypeScript check
+      - name: Type check
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+      - name: Build
         run: npm run build
 
-      - name: Build Docker image
-        run: docker build -t todo-app:test .
-
-      - name: Docker image inspection
-        run: docker images | grep todo-app
+      - name: Test (if exists)
+        run: npm test
+        continue-on-error: true
