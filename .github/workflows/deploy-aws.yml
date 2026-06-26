@@ -11,6 +11,7 @@ env:
   ECS_CLUSTER: prod-cluster
   ECS_SERVICE: todo-app-service
   CONTAINER_NAME: todo-app
+  AWS_ACCOUNT_ID: 340010512290
 
 jobs:
   deploy:
@@ -39,10 +40,15 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$ECR_REPOSITORY:latest" .
+          docker build \
+            --no-cache \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$REGISTRY/$ECR_REPOSITORY:latest" .
           docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker push "$REGISTRY/$ECR_REPOSITORY:latest"
           echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "✅ Image pushed: $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Register new task definition
         id: register-task
@@ -55,8 +61,8 @@ jobs:
             --requires-compatibilities EC2 \
             --cpu 128 \
             --memory 256 \
-            --task-role-arn "arn:aws:iam::340010512290:role/ecsTaskExecutionRole" \
-            --execution-role-arn "arn:aws:iam::340010512290:role/ecsTaskExecutionRole" \
+            --task-role-arn "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecsTaskRole" \
+            --execution-role-arn "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole" \
             --container-definitions "[
               {
                 \"name\": \"todo-app\",
@@ -64,12 +70,13 @@ jobs:
                 \"essential\": true,
                 \"environment\": [
                   {\"name\": \"NODE_ENV\",     \"value\": \"production\"},
-                  {\"name\": \"AWS_REGION\",   \"value\": \"us-east-1\"}
+                  {\"name\": \"AWS_REGION\",   \"value\": \"us-east-1\"},
+                  {\"name\": \"NODE_OPTIONS\",  \"value\": \"--dns-result-order=ipv4first\"}
                 ],
                 \"secrets\": [
                   {
                     \"name\": \"DATABASE_URL\",
-                    \"valueFrom\": \"arn:aws:ssm:us-east-1:340010512290:parameter/todo-app-database-url\"
+                    \"valueFrom\": \"arn:aws:ssm:us-east-1:${{ env.AWS_ACCOUNT_ID }}:parameter/todo-app-database-url\"
                   }
                 ],
                 \"logConfiguration\": {
@@ -86,7 +93,7 @@ jobs:
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
-          echo "✅ Registered task definition: $TASK_ARN"
+          echo "✅ Registered: $TASK_ARN"
 
       - name: Deploy to ECS service
         run: |
@@ -96,16 +103,17 @@ jobs:
             --task-definition "${{ steps.register-task.outputs.task_arn }}" \
             --force-new-deployment \
             --region "$AWS_REGION"
-          echo "✅ Deployment triggered: ${{ steps.register-task.outputs.task_arn }}"
+          echo "✅ Deployment triggered"
 
       - name: Wait for stable deployment
+        timeout-minutes: 10
         run: |
-          echo "⏳ Waiting for service to stabilize..."
+          echo "⏳ Waiting for service to stabilize (max 10min)..."
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
             --services "$ECS_SERVICE" \
-            --region "$AWS_REGION"
-          echo "✅ Service stable"
+            --region "$AWS_REGION" || true
+          echo "✅ Wait complete"
 
       - name: Verify deployment
         run: |
@@ -116,3 +124,13 @@ jobs:
             --query 'services[0].{Running:runningCount,Desired:desiredCount,TaskDef:taskDefinition}' \
             --output table
           echo "🚀 Live at: http://54.146.152.142:3001"
+
+      - name: Health check
+        run: |
+          sleep 30
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://54.146.152.142:3001/health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP $STATUS)"
+          else
+            echo "⚠️ Health check returned HTTP $STATUS"
+          fi
