@@ -71,7 +71,7 @@ async function ensureSchema() {
 
 app.get('/api/tasks', async (_req, res) => {
   try {
-    const result = await db.select().from(tasks).orderBy(tasks.createdAt)
+    const result = await db.select().from(tasks).orderBy((table) => table.createdAt)
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: String(err) })
