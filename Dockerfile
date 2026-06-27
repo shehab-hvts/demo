@@ -1,4 +1,5 @@
-FROM node:22-alpine AS build
+﻿# Stage 1: Build
+FROM node:22-bookworm AS build
 
 WORKDIR /app
 
@@ -12,14 +13,14 @@ RUN npm run build
 
 RUN npm prune --production
 
-FROM node:22-alpine
+# Stage 2: Production
+FROM node:22-bookworm
 
 WORKDIR /app
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/package*.json ./
 
 EXPOSE 3001
 
-CMD ["node", "dist/server/server.js"]
+CMD ["node", "dist/server.js"]
