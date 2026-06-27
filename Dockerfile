@@ -3,18 +3,15 @@ FROM node:20-slim AS build
 
 WORKDIR /app
 
+# npm 10.8.2 (bundled) has a bug at 71s. Install stable npm 9.x
+RUN npm install -g npm@9.8.1 --no-audit --no-fund && \
+    npm --version
+
 COPY package*.json ./
 
-# npm ci with explicit verification that it succeeds
-RUN npm ci --legacy-peer-deps --no-audit --no-fund || \
-    (echo "npm ci failed" && exit 1)
-
-# Verify node_modules was created with files
-RUN test -d node_modules && [ "$(find node_modules -type f | wc -l)" -gt 100 ] || \
-    (echo "node_modules missing or empty!" && exit 1)
-
-# List installed packages to verify
-RUN npm list --depth=0
+# Use stable npm 9.x for installation
+RUN npm ci --legacy-peer-deps --no-audit --no-fund && \
+    npm list --depth=0
 
 COPY . .
 
