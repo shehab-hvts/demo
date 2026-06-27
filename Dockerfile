@@ -14,9 +14,9 @@ FROM node:22-alpine AS production
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package*.json package-lock.json ./
 
-RUN npm ci --omit=dev --no-audit --no-fund --legacy-peer-deps
+RUN npm ci --only=production --no-audit --no-fund || npm install --only=production --no-audit --no-fund
 
 COPY --from=build /app/dist ./dist
 
