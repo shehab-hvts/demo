@@ -1,5 +1,5 @@
 ﻿# Stage 1: Build
-FROM node:22-bookworm AS build
+FROM node:20-slim AS build
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN npm run build
 RUN npm ci --production --no-audit --no-fund
 
 # Stage 2: Production
-FROM node:22-bookworm
+FROM node:20-slim
 
 WORKDIR /app
 
