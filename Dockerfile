@@ -5,8 +5,16 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --production=false --legacy-peer-deps --no-audit --no-fund && \
-    npm list 2>&1 | head -20
+# npm ci with explicit verification that it succeeds
+RUN npm ci --legacy-peer-deps --no-audit --no-fund || \
+    (echo "npm ci failed" && exit 1)
+
+# Verify node_modules was created with files
+RUN test -d node_modules && [ "$(find node_modules -type f | wc -l)" -gt 100 ] || \
+    (echo "node_modules missing or empty!" && exit 1)
+
+# List installed packages to verify
+RUN npm list --depth=0
 
 COPY . .
 
