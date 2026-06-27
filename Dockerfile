@@ -5,13 +5,14 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --no-audit --no-fund
+RUN npm install --production=false --legacy-peer-deps --no-audit --no-fund && \
+    npm list 2>&1 | head -20
 
 COPY . .
 
 RUN npm run build
 
-RUN npm ci --production --no-audit --no-fund
+RUN npm prune --production
 
 # Stage 2: Production
 FROM node:20-slim
