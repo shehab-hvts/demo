@@ -11,12 +11,14 @@ COPY package*.json ./
 
 # Use npm install with stable npm 9.x (npm ci also had issues)
 RUN npm install --prefer-offline --legacy-peer-deps --no-audit --no-fund && \
-    npm list --depth=0 && \
-    npm prune --production
+    npm list --depth=0
 
 COPY . .
 
 RUN npm run build
+
+# Remove dev dependencies after build completes
+RUN npm prune --production
 
 # Stage 2: Production
 FROM node:20-slim
