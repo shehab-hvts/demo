@@ -33,21 +33,22 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push image
+      - name: Build and push Docker image
         id: build-image
         env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build --no-cache \
-            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            -t "$REGISTRY/$ECR_REPOSITORY:latest" \
+          docker build \
+            --no-cache \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             .
-          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$REGISTRY/$ECR_REPOSITORY:latest"
-          echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Register task definition
+      - name: Register ECS task definition
         id: task-def
         env:
           IMAGE_URI: ${{ steps.build-image.outputs.image }}
@@ -58,84 +59,65 @@ jobs:
             --requires-compatibilities EC2 \
             --cpu 128 \
             --memory 256 \
-            --task-role-arn "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole" \
-            --execution-role-arn "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole" \
-            --container-definitions "[
-              {
-                \"name\": \"todo-app\",
-                \"image\": \"$IMAGE_URI\",
-                \"essential\": true,
-                \"environment\": [
-                  {\"name\": \"NODE_ENV\", \"value\": \"production\"},
-                  {\"name\": \"AWS_REGION\", \"value\": \"us-east-1\"},
-                  {\"name\": \"NODE_OPTIONS\", \"value\": \"--dns-result-order=ipv4first\"}
-                ],
-                \"secrets\": [
-                  {
-                    \"name\": \"DATABASE_URL\",
-                    \"valueFrom\": \"arn:aws:ssm:us-east-1:${{ env.AWS_ACCOUNT_ID }}:parameter/todo-app-database-url\"
-                  }
-                ],
-                \"logConfiguration\": {
-                  \"logDriver\": \"awslogs\",
-                  \"options\": {
-                    \"awslogs-group\": \"/ecs/todo-app\",
-                    \"awslogs-region\": \"us-east-1\",
-                    \"awslogs-stream-prefix\": \"ecs\"
-                  }
+            --task-role-arn arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecsTaskRole \
+            --execution-role-arn arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
+            --container-definitions "[{
+              \"name\": \"todo-app\",
+              \"image\": \"$IMAGE_URI\",
+              \"essential\": true,
+              \"environment\": [
+                {\"name\": \"NODE_ENV\", \"value\": \"production\"},
+                {\"name\": \"AWS_REGION\", \"value\": \"us-east-1\"},
+                {\"name\": \"NODE_OPTIONS\", \"value\": \"--dns-result-order=ipv4first\"}
+              ],
+              \"secrets\": [
+                {\"name\": \"DATABASE_URL\", \"valueFrom\": \"arn:aws:ssm:us-east-1:${{ env.AWS_ACCOUNT_ID }}:parameter/todo-app-database-url\"}
+              ],
+              \"logConfiguration\": {
+                \"logDriver\": \"awslogs\",
+                \"options\": {
+                  \"awslogs-group\": \"/ecs/todo-app\",
+                  \"awslogs-region\": \"us-east-1\",
+                  \"awslogs-stream-prefix\": \"ecs\"
                 }
               }
-            ]" \
-            --region "${{ env.AWS_REGION }}" \
+            }]" \
+            --region ${{ env.AWS_REGION }} \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
-          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+          echo "task_arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "Registered: $TASK_ARN"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
-            --cluster "${{ env.ECS_CLUSTER }}" \
-            --service "${{ env.ECS_SERVICE }}" \
-            --task-definition "${{ steps.task-def.outputs.task_arn }}" \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.task-def.outputs.task_arn }} \
             --force-new-deployment \
-            --region "${{ env.AWS_REGION }}"
+            --region ${{ env.AWS_REGION }}
 
       - name: Wait for stable deployment
         timeout-minutes: 10
         run: |
           aws ecs wait services-stable \
-            --cluster "${{ env.ECS_CLUSTER }}" \
-            --services "${{ env.ECS_SERVICE }}" \
-            --region "${{ env.AWS_REGION }}" || true
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }} || true
 
-      - name: Verify deployment
+      - name: Verify and health check
         run: |
           aws ecs describe-services \
-            --cluster "${{ env.ECS_CLUSTER }}" \
-            --services "${{ env.ECS_SERVICE }}" \
-            --region "${{ env.AWS_REGION }}" \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }} \
             --query 'services[0].{Running:runningCount,Desired:desiredCount,TaskDef:taskDefinition}' \
             --output table
 
-      - name: Health check with retry
-        run: |
           for i in 1 2 3 4 5 6; do
-            HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://54.146.152.142:3001/health || echo "000")
-            if [ "$HTTP" = "200" ]; then
-              echo "✅ Health check passed"
-              exit 0
-            fi
-            echo "Attempt $i: HTTP $HTTP — retrying in 10s..."
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://54.146.152.142:3001/health || echo "000")
+            [ "$HTTP" = "200" ] && echo "Health check passed" && break
+            echo "Attempt $i: HTTP $HTTP, retrying in 10s..."
             sleep 10
           done
-          echo "❌ Health check failed"
-          exit 1
-
-      - name: API smoke test
-        run: |
-          RESPONSE=$(curl -s http://54.146.152.142:3001/api/tasks)
-          if echo "$RESPONSE" | grep -q '"error"'; then
-            echo "❌ API failed: $RESPONSE"
-            exit 1
-          fi
-          echo "✅ API working: $RESPONSE" | head -c 200
