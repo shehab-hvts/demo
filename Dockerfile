@@ -5,8 +5,7 @@ WORKDIR /app
 
 # npm 10.8.2 (bundled) has a bug at 71s. Install stable npm 9.x
 RUN npm install -g npm@9.8.1 --no-audit --no-fund && \
-    npm --version && \
-    npm config set registry https://registry.npmjs.org/
+    npm --version
 
 COPY package*.json ./
 
