@@ -1,0 +1,79 @@
+I need to synchronize my Replit project with the latest code from GitHub.
+
+CONTEXT:
+- Replit Project: HVTS Todo App (React + Express + TypeScript + PostgreSQL)
+- GitHub Repository: https://github.com/shehab-hvts/demo
+- Repository Owner: Omar Shehab (shehab-hvts) - I have contributor access
+- Default Branch: main
+- My Email: mazumder@hvts.ai
+- Project Type: Full-stack web application
+
+TASK:
+Please help me sync Replit with the latest GitHub code by:
+
+1. INITIALIZE GIT (if not already initialized)
+   - Check if .git directory exists
+   - If not, initialize git repo
+   - Add remote origin: https://github.com/shehab-hvts/demo.git
+   - Set branch to main
+   - Configure git user:
+     * name: "Anindya Mazumder"
+     * email: "mazumder@hvts.ai"
+
+2. PULL LATEST CODE
+   - Execute: git pull origin main
+   - If git asks for credentials, use:
+     * Username: mazumder@hvts.ai
+     * Password: hvts007
+   - Handle any merge conflicts by preferring GitHub version
+
+3. VERIFY SYNC SUCCESS
+   - Show last 5 commits to confirm sync worked
+   - Expected commits include: fd8ce10, 76ff8d2, fa44d74, 6fde087, f96f7e8
+   - Check git status to confirm clean state
+
+4. INSTALL DEPENDENCIES
+   - Run: npm install
+   - Ensure all packages installed without errors
+
+5. BUILD PROJECT
+   - Run: npm run build
+   - Confirm TypeScript compilation succeeds
+   - Verify dist/ folder created
+
+6. FINAL VERIFICATION
+   - Run: npm start (for 5 seconds then stop with Ctrl+C)
+   - Confirm app initializes with:
+     * [Server Init] Environment loaded
+     * [Pool] Connected to database (or attempt message)
+     * [Server] API running on http://0.0.0.0:3000 (or similar port)
+
+EXPECTED OUTPUTS:
+- ✅ Git initialized (if needed)
+- ✅ Latest code pulled from GitHub
+- ✅ No merge conflicts
+- ✅ Dependencies installed (0 vulnerabilities)
+- ✅ Project builds successfully
+- ✅ App starts without fatal errors
+- ✅ Replit now matches GitHub repository
+
+ERROR HANDLING:
+- If "not a git repository": Initialize git first
+- If credential error: Try using GitHub Personal Access Token instead of password
+- If merge conflicts: Automatically resolve by taking GitHub version
+- If npm error: Clear node_modules and reinstall
+- If build fails: Show TypeScript error details
+
+PROVIDE:
+1. Step-by-step execution summary
+2. Any errors encountered (if any)
+3. Final status: "✅ Sync Complete" or "❌ Sync Failed: [reason]"
+4. Next steps if sync was successful
+5. Troubleshooting suggestions if sync failed
+
+IMPORTANT NOTES:
+- This is a one-way sync FROM GitHub TO Replit
+- Don't make local changes during this process
+- Keep original project structure intact
+- Preserve Replit configuration files (if any)
+- This should take approximately 2-3 minutes total

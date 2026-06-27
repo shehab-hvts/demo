@@ -171,7 +171,7 @@ export default function App() {
   const done = taskList.filter(t => t.done)
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex justify-center px-4 pt-16">
+    <div className="min-h-screen bg-red-500 flex justify-center px-4 pt-16">
       <div className="w-full max-w-md">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-1">Tasks</h1>
         <p className="text-sm text-zinc-400 mb-6">

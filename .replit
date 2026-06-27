@@ -1,0 +1,22 @@
+modules = ["nodejs-20"]
+[agent]
+expertMode = true
+
+[workflows]
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 5173
+externalPort = 80
+
+[[ports]]
+localPort = 5174
+externalPort = 3002
+
+[userenv]
+
+[userenv.shared]
+DATABASE_URL_SUPABASE = "postgresql://postgres:hvts007!qed@db.wgbfmoancrtswyumpule.supabase.co:6543/postgres?sslmode=require"

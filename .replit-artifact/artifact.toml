@@ -12,10 +12,11 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 25230
+localPort = 5173
 
 [services.development]
 run = "npm install && npm run dev"
 
 [services.env]
-PORT = "25230"
+PORT = "5173"
+API_PORT = "3001"
