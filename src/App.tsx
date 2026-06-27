@@ -125,9 +125,14 @@ function TaskRow({
   onDelete: () => void
 }) {
   return (
-    <div className="group flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3">
+    <div className={cn(
+      'group flex items-center gap-3 rounded-lg border px-4 py-3',
+      task.done
+        ? 'border-red-500 bg-red-100'
+        : 'border-zinc-200 bg-white'
+    )}>
       <Checkbox checked={task.done} onCheckedChange={onToggle} />
-      <span className={cn('flex-1 text-sm', task.done && 'text-zinc-400 line-through')}>
+      <span className={cn('flex-1 text-sm', task.done && 'text-red-700 line-through font-medium')}>
         {task.title}
       </span>
       <Button
