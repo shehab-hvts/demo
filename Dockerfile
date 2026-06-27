@@ -9,15 +9,14 @@ RUN npm install -g npm@9.8.1 --no-audit --no-fund && \
 
 COPY package*.json ./
 
-# Use stable npm 9.x with correct registry for installation
-RUN npm ci --legacy-peer-deps --no-audit --no-fund && \
-    npm list --depth=0
+# Use npm install with stable npm 9.x (npm ci also had issues)
+RUN npm install --prefer-offline --legacy-peer-deps --no-audit --no-fund && \
+    npm list --depth=0 && \
+    npm prune --production
 
 COPY . .
 
 RUN npm run build
-
-RUN npm prune --production
 
 # Stage 2: Production
 FROM node:20-slim
