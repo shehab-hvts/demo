@@ -149,8 +149,8 @@ function TaskRow({
 
 export default function App() {
   const [input, setInput] = useState('')
-  const qc = useQueryClient()
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['tasks'] })
+  const queryClient = useQueryClient()
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
 
   const { data: taskList = [], isLoading, isFetching, isError, error } = useQuery({
     queryKey: ['tasks'],
