@@ -5,13 +5,13 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 COPY . .
 
 RUN npm run build
 
-RUN npm prune --production
+RUN npm ci --production --no-audit --no-fund
 
 # Stage 2: Production
 FROM node:22-bookworm
